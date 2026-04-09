@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 public class Metric {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_note")
     private Integer id;
 

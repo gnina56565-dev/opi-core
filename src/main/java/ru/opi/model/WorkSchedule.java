@@ -19,6 +19,7 @@ import java.time.LocalTime;
 public class WorkSchedule {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_schedule")
     private Integer id;
 

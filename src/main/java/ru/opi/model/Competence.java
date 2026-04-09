@@ -15,17 +15,13 @@ public class Competence {
     @Column(name = "specification")
     private String specification;
 
-    // Конструктор по умолчанию
     public Competence() {}
 
-    // Полный конструктор
     public Competence(Integer id, String name, String specification) {
         this.id = id;
         this.name = name;
         this.specification = specification;
     }
-
-    // Геттеры и сеттеры
     public Integer getId() {
         return id;
     }
