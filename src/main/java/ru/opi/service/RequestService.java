@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.opi.model.Request;
 import ru.opi.model.Status;
+import ru.opi.model.Priority;
 import ru.opi.repository.RequestRepository;
 
 import java.time.LocalDateTime;
@@ -35,7 +36,21 @@ public class RequestService {
         request.setStatus(Status.НОВАЯ);
         request.setCreatedAt(LocalDateTime.now());
 
+        // Установка SLA deadline на основе приоритета
+        int slaHours = getSlaHours(request.getPriority());
+        request.setSlaDeadline(LocalDateTime.now().plusHours(slaHours));
+
         return requestRepository.save(request);
+    }
+
+    private int getSlaHours(Priority priority) {
+        switch (priority) {
+            case КРИТИЧЕСКИЙ: return 4;
+            case ВЫСОКИЙ: return 8;
+            case СРЕДНИЙ: return 24;
+            case НИЗКИЙ: return 72;
+            default: return 24;
+        }
     }
 
     public Request update(Integer id, Request updatedRequest) {
