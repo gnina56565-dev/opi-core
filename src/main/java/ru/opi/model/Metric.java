@@ -32,7 +32,6 @@ public class Metric {
     private Competence competence;
 
     @Column(name = "perf_factor", nullable = false, precision = 5, scale = 2)
-    private BigDecimal perfFactor; // > 0
+    private BigDecimal perfFactor;
 
-    // Валидация на уровне бизнес-логики или через @AssertTrue (если нужна строгая проверка)
 }
