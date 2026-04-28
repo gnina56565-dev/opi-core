@@ -5,6 +5,8 @@ import ru.opi.repository.SlaRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class SlaService {
 
@@ -13,5 +15,9 @@ public class SlaService {
 
     public void saveSla(SlaRecord sla) {
         slaRecordRepository.save(sla);
+    }
+
+    public List<SlaRecord> findAll() {
+        return slaRecordRepository.findAll();
     }
 }

@@ -6,6 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.opi.model.Engineer;
 import ru.opi.model.Request;
 import ru.opi.model.SlaRecord;
+import ru.opi.model.Status;
+import ru.opi.model.Priority;
+import ru.opi.model.LineLevel;
 import ru.opi.repository.EngineerRepository;
 import ru.opi.repository.RequestRepository;
 import ru.opi.repository.SlaRecordRepository;
@@ -29,7 +32,7 @@ public class PlanningService {
 
     @Transactional
     public int runPlanning() {
-        List<Request> pendingRequests = requestRepository.findByStatus("новая");
+        List<Request> pendingRequests = requestRepository.findByStatus(Status.НОВАЯ);
         List<Engineer> activeEngineers = engineerRepository.findByActiveTrue();
 
         if (pendingRequests.isEmpty() || activeEngineers.isEmpty()) {
@@ -40,9 +43,8 @@ public class PlanningService {
 
         for (Request request : pendingRequests) {
             int requiredLevel = getRequiredLevel(request.getPriority());
-
             List<Engineer> candidates = activeEngineers.stream()
-                    .filter(e -> e.getLineLevel() >= requiredLevel)
+                    .filter(e -> e.getLineLevel().getValue() >= requiredLevel)
                     .sorted(Comparator.comparingInt(this::getEngineerWorkload))
                     .collect(Collectors.toList());
 
@@ -58,7 +60,7 @@ public class PlanningService {
 
                 slaRecordRepository.save(sla);
 
-                request.setStatus("в работе");
+                request.setStatus(Status.В_РАБОТЕ);
                 requestRepository.save(request);
 
                 assignedCount++;
@@ -67,13 +69,19 @@ public class PlanningService {
         return assignedCount;
     }
 
-    private int getRequiredLevel(String priority) {
-        if ("критический".equals(priority) || "высокий".equals(priority)) return 3;
-        if ("средний".equals(priority)) return 2;
+    /**
+     * Определяет требуемый уровень инженера на основе приоритета заявки
+     */
+    private int getRequiredLevel(Priority priority) {
+        if (priority == Priority.КРИТИЧЕСКИЙ || priority == Priority.ВЫСОКИЙ) return 3;
+        if (priority == Priority.СРЕДНИЙ) return 2;
         return 1;
     }
 
+    /**
+     * Возвращает текущую загрузку инженера (количество заявок в работе)
+     */
     private int getEngineerWorkload(Engineer engineer) {
-        return slaRecordRepository.countByEngineerIdAndRequestStatus(engineer.getIdEngineer(), "в работе");
+        return slaRecordRepository.countByEngineerIdAndRequestStatus(engineer.getId(), Status.В_РАБОТЕ);
     }
 }

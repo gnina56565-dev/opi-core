@@ -1,0 +1,79 @@
+/* Основные стили приложения */
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.tab-content {
+    background: white;
+    padding: 20px;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table {
+    font-size: 0.9rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Цвета статусов */
+.badge-НОВАЯ {
+    background-color: #17a2b8;
+}
+
+.badge-В_РАБОТЕ {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-ЭСКАЛИРОВАНА {
+    background-color: #dc3545;
+}
+
+.badge-ЗАКРЫТА {
+    background-color: #28a745;
+}
+
+/* Цвета приоритетов */
+.badge-НИЗКИЙ {
+    background-color: #6c757d;
+}
+
+.badge-СРЕДНИЙ {
+    background-color: #17a2b8;
+}
+
+.badge-ВЫСОКИЙ {
+    background-color: #fd7e14;
+}
+
+.badge-КРИТИЧЕСКИЙ {
+    background-color: #dc3545;
+}
+
+/* Уведомления */
+.alert {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+
+    .modal-dialog {
+        margin: 10px;
+    }
+}
