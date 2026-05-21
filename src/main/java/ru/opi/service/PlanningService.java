@@ -52,43 +52,41 @@ public class PlanningService {
             if (!candidates.isEmpty()) {
                 Engineer bestEngineer = candidates.get(0);
 
-                // Проверяем, есть ли уже SLA запись для этой заявки (инженер выполняет заявку)
-                List<SlaRecord> existingSlaRecords = slaRecordRepository.findByRequestIdAndActualEndIsNull(request.getId());
+                // Проверяем, есть ли уже SLA запись для этой заявки
+                List<SlaRecord> existingSlaForRequest = slaRecordRepository.findByRequestIdAndActualEndIsNull(request.getId());
 
-                if (!existingSlaRecords.isEmpty()) {
-                    // Инженер уже выполняет заявку - смещаем на свободное время
-                    SlaRecord existingSla = existingSlaRecords.get(0);
-                    LocalDateTime freeTime = existingSla.getPlannedEnd();
-
-                    SlaRecord sla = new SlaRecord();
-                    sla.setRequest(request);
-                    sla.setEngineer(bestEngineer);
-                    sla.setPlannedStart(freeTime);
-                    sla.setPlannedEnd(freeTime.plusHours(4));
-                    sla.setSlaForecast(true);
-
-                    slaRecordRepository.save(sla);
-
-                    request.setStatus(Status.В_РАБОТЕ);
-                    requestRepository.save(request);
-
-                    assignedCount++;
-                } else {
-                    // Заявка новая, назначаем обычным способом
-                    SlaRecord sla = new SlaRecord();
-                    sla.setRequest(request);
-                    sla.setEngineer(bestEngineer);
-                    sla.setPlannedStart(LocalDateTime.now());
-                    sla.setPlannedEnd(LocalDateTime.now().plusHours(4));
-                    sla.setSlaForecast(true);
-
-                    slaRecordRepository.save(sla);
-
-                    request.setStatus(Status.В_РАБОТЕ);
-                    requestRepository.save(request);
-
-                    assignedCount++;
+                if (!existingSlaForRequest.isEmpty()) {
+                    // Заявка уже назначена, пропускаем
+                    continue;
                 }
+
+                // Находим последнюю активную заявку этого инженера, чтобы определить свободное время
+                List<SlaRecord> engineerActiveSla = slaRecordRepository.findByEngineerIdAndActualEndIsNullOrderByPlannedEndDesc(bestEngineer.getId());
+
+                LocalDateTime startTime;
+                if (!engineerActiveSla.isEmpty()) {
+                    // Инженер уже выполняет заявки - смещаем на время окончания последней
+                    SlaRecord lastSla = engineerActiveSla.get(0);
+                    startTime = lastSla.getPlannedEnd();
+                } else {
+                    // Инженер свободен, начинаем сейчас
+                    startTime = LocalDateTime.now();
+                }
+
+                // Создаем новую SLA запись
+                SlaRecord sla = new SlaRecord();
+                sla.setRequest(request);
+                sla.setEngineer(bestEngineer);
+                sla.setPlannedStart(startTime);
+                sla.setPlannedEnd(startTime.plusHours(4));
+                sla.setSlaForecast(true);
+
+                slaRecordRepository.save(sla);
+
+                request.setStatus(Status.В_РАБОТЕ);
+                requestRepository.save(request);
+
+                assignedCount++;
             }
         }
         return assignedCount;

@@ -1,7 +1,11 @@
 package ru.opi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "engineers")
@@ -24,4 +28,16 @@ public class Engineer {
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    @OneToMany(mappedBy = "engineer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<SlaRecord> slaRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "engineer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Metric> metrics = new ArrayList<>();
+
+    @OneToMany(mappedBy = "engineer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<WorkSchedule> workSchedules = new ArrayList<>();
 }

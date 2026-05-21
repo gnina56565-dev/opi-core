@@ -10,4 +10,5 @@ import java.util.List;
 public interface SlaRecordRepository extends JpaRepository<SlaRecord, Integer> {
     int countByEngineerIdAndRequestStatus(Integer engineerId, ru.opi.model.Status status);
     List<SlaRecord> findByRequestIdAndActualEndIsNull(Integer requestId);
+    List<SlaRecord> findByEngineerIdAndActualEndIsNullOrderByPlannedEndDesc(Integer engineerId);
 }
