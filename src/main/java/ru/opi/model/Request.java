@@ -49,4 +49,7 @@ public class Request {
 
     @Column(name = "escalation_reason")
     private String escalationReason;
+
+    @Column(name = "actual_end")
+    private LocalDateTime actualEnd;
 }
