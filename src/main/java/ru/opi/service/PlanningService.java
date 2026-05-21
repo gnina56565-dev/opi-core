@@ -31,6 +31,7 @@ public class PlanningService {
     private SlaRecordRepository slaRecordRepository;
 
     @Transactional
+    //возвращает количество успешно назначенных заявок
     public int runPlanning() {
         List<Request> pendingRequests = requestRepository.findByStatus(Status.НОВАЯ);
         List<Engineer> activeEngineers = engineerRepository.findByActiveTrue();
@@ -69,18 +70,12 @@ public class PlanningService {
         return assignedCount;
     }
 
-    /**
-     * Определяет требуемый уровень инженера на основе приоритета заявки
-     */
     private int getRequiredLevel(Priority priority) {
         if (priority == Priority.КРИТИЧЕСКИЙ || priority == Priority.ВЫСОКИЙ) return 3;
         if (priority == Priority.СРЕДНИЙ) return 2;
         return 1;
     }
 
-    /**
-     * Возвращает текущую загрузку инженера (количество заявок в работе)
-     */
     private int getEngineerWorkload(Engineer engineer) {
         return slaRecordRepository.countByEngineerIdAndRequestStatus(engineer.getId(), Status.В_РАБОТЕ);
     }

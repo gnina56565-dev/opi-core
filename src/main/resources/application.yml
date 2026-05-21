@@ -1,4 +1,7 @@
 spring:
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
   datasource:
     url: jdbc:postgresql://localhost:5432/opi_db
     username: postgres
