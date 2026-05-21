@@ -8,6 +8,7 @@ import ru.opi.model.SlaRecord;
 import ru.opi.service.PlanningService;
 import ru.opi.service.SlaService;
 import ru.opi.repository.EngineerRepository;
+import ru.opi.repository.SlaRecordRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ public class SlaController {
     private final SlaService slaService;
     private final PlanningService planningService;
     private final EngineerRepository engineerRepository;
+    private final SlaRecordRepository slaRecordRepository;
 
     @GetMapping
     public ResponseEntity<List<SlaRecord>> getAllSla() {
@@ -55,9 +57,18 @@ public class SlaController {
     @DeleteMapping("/engineers/{id}")
     public ResponseEntity<Void> deleteEngineer(@PathVariable Integer id) {
         try {
+            // Сначала удаляем связанные записи SLA, чтобы избежать нарушения внешнего ключа
+            List<SlaRecord> slaRecords = slaRecordRepository.findAll().stream()
+                    .filter(sla -> sla.getEngineer().getId().equals(id))
+                    .collect(java.util.stream.Collectors.toList());
+            if (!slaRecords.isEmpty()) {
+                slaRecordRepository.deleteAll(slaRecords);
+            }
+
             engineerRepository.deleteById(id);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).build();
         }
     }

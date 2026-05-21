@@ -1,5 +1,6 @@
 package ru.opi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,7 +25,8 @@ public class Metric {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_engineer", nullable = false)
+    @JoinColumn(name = "id_engineer", nullable = false, foreignKey = @ForeignKey(name = "fk_metric_engineer"))
+    @JsonIgnore
     private Engineer engineer;
 
     @ManyToOne(fetch = FetchType.LAZY)

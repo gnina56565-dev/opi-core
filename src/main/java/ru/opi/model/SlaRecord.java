@@ -1,5 +1,6 @@
 package ru.opi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,10 +23,11 @@ public class SlaRecord {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_engineer", nullable = false)
+    @JoinColumn(name = "id_engineer", nullable = false, foreignKey = @ForeignKey(name = "fk_sla_engineer"))
+    @JsonIgnore
     private Engineer engineer;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     @JoinColumn(name = "id_request", nullable = false)
     private Request request;
 

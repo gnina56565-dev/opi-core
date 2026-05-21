@@ -6,6 +6,7 @@ import ru.opi.model.Request;
 import ru.opi.model.Status;
 import ru.opi.model.Priority;
 import ru.opi.repository.RequestRepository;
+import ru.opi.repository.SlaRecordRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,6 +16,9 @@ public class RequestService {
 
     @Autowired
     private RequestRepository requestRepository;
+
+    @Autowired
+    private SlaRecordRepository slaRecordRepository;
 
     public List<Request> findAll() {
         return requestRepository.findAll();
@@ -36,7 +40,6 @@ public class RequestService {
         request.setStatus(Status.НОВАЯ);
         request.setCreatedAt(LocalDateTime.now());
 
-        // Установка SLA deadline на основе приоритета
         int slaHours = getSlaHours(request.getPriority());
         request.setSlaDeadline(LocalDateTime.now().plusHours(slaHours));
 
@@ -75,6 +78,8 @@ public class RequestService {
         if (!requestRepository.existsById(id)) {
             throw new ResourceNotFoundException("Заявка с ID " + id + " не найдена");
         }
+
+        slaRecordRepository.deleteAll(slaRecordRepository.findByRequestIdAndActualEndIsNull(id));
         requestRepository.deleteById(id);
     }
 
