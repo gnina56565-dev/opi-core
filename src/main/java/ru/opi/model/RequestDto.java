@@ -15,6 +15,7 @@ public class RequestDto {
     private LocalDateTime createdAt;
     private LocalDateTime slaDeadline;
     private String escalationReason;
+    private LocalDateTime actualEnd;
 
     public static RequestDto fromEntity(Request request) {
         if (request == null) return null;
@@ -28,6 +29,7 @@ public class RequestDto {
         dto.setCreatedAt(request.getCreatedAt());
         dto.setSlaDeadline(request.getSlaDeadline());
         dto.setEscalationReason(request.getEscalationReason());
+        dto.setActualEnd(request.getActualEnd());
         if (request.getCompetence() != null) {
             dto.setIdCompetence(request.getCompetence().getId() != null ? request.getCompetence().getId().longValue() : null);
         }
@@ -52,6 +54,7 @@ public class RequestDto {
         request.setCreatedAt(this.createdAt);
         request.setSlaDeadline(this.slaDeadline);
         request.setEscalationReason(this.escalationReason);
+        request.setActualEnd(this.actualEnd);
         return request;
     }
 
@@ -62,6 +65,7 @@ public class RequestDto {
         if (this.priority != null) request.setPriority(Priority.valueOf(this.priority));
         if (this.status != null) request.setStatus(Status.valueOf(this.status));
         if (this.escalationReason != null) request.setEscalationReason(this.escalationReason);
+        if (this.actualEnd != null) request.setActualEnd(this.actualEnd);
         if (competence != null) request.setCompetence(competence);
     }
 }

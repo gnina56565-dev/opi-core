@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupForms();
     loadRequests();
     loadCompetences();
+    loadEngineers();
 });
 
 // Настройка переключения вкладок
@@ -36,6 +37,8 @@ function setupTabs() {
                 loadRequests();
             } else if (tabName === 'create') {
                 loadCompetences();
+            } else if (tabName === 'engineers') {
+                loadEngineers();
             }
         });
     });
@@ -52,6 +55,13 @@ function setupForms() {
     // Кнопки модального окна
     document.getElementById('btn-delete').addEventListener('click', deleteCurrentRequest);
     document.getElementById('btn-escalate').addEventListener('click', escalateCurrentRequest);
+
+    // Форма создания инженера
+    const engineerForm = document.getElementById('create-engineer-form');
+    engineerForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await createEngineer();
+    });
 }
 
 // Показать уведомление
@@ -221,6 +231,7 @@ async function showRequestDetails(id) {
 
         document.getElementById('modal-created').textContent = formatDate(req.createdAt);
         document.getElementById('modal-sla').textContent = formatDate(req.slaDeadline);
+        document.getElementById('modal-actual-end').textContent = formatDate(req.actualEnd) || 'Не завершена';
         document.getElementById('modal-escalation').textContent = req.escalationReason || 'Нет';
 
         const modal = new bootstrap.Modal(document.getElementById('requestModal'));
@@ -327,6 +338,117 @@ async function runPlanning() {
             </div>
         `;
         showNotification('Ошибка планирования: ' + error.message, 'danger');
+    }
+}
+
+// Загрузка списка инженеров
+async function loadEngineers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/sla/engineers`);
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const engineers = await response.json();
+        renderEngineersTable(engineers);
+    } catch (error) {
+        console.error('Ошибка загрузки инженеров:', error);
+        showNotification('Ошибка загрузки инженеров: ' + error.message, 'danger');
+        document.getElementById('engineers-table-body').innerHTML =
+            '<tr><td colspan="5" class="text-center text-danger">Ошибка загрузки данных</td></tr>';
+    }
+}
+
+// Отрисовка таблицы инженеров
+function renderEngineersTable(engineers) {
+    const tbody = document.getElementById('engineers-table-body');
+
+    if (engineers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Инженеров нет</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = engineers.map(eng => `
+        <tr>
+            <td>${eng.id}</td>
+            <td>${escapeHtml(eng.fio)}</td>
+            <td>${getLineLevelName(eng.lineLevel)}</td>
+            <td>${eng.active ? '<span class="badge bg-success">Да</span>' : '<span class="badge bg-secondary">Нет</span>'}</td>
+            <td>
+                <button class="btn btn-sm btn-danger" onclick="deleteEngineer(${eng.id})">Удалить</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Получение имени уровня инженера
+function getLineLevelName(level) {
+    const names = {
+        'ONE': '1 линия',
+        'TWO': '2 линия',
+        'THREE': '3 линия'
+    };
+    return names[level] || level;
+}
+
+// Создание инженера
+async function createEngineer() {
+    const fio = document.getElementById('engineerFio').value.trim();
+    const lineLevel = document.getElementById('engineerLevel').value;
+    const active = document.getElementById('engineerActive').value === 'true';
+
+    if (!fio || !lineLevel) {
+        showNotification('Заполните все обязательные поля', 'warning');
+        return;
+    }
+
+    const engineer = {
+        fio: fio,
+        lineLevel: lineLevel,
+        active: active
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/sla/engineers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(engineer)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        showNotification('Инженер успешно добавлен!', 'success');
+        document.getElementById('create-engineer-form').reset();
+        loadEngineers();
+    } catch (error) {
+        console.error('Ошибка создания инженера:', error);
+        showNotification('Ошибка создания инженера: ' + error.message, 'danger');
+    }
+}
+
+// Удаление инженера
+async function deleteEngineer(id) {
+    if (!confirm('Вы уверены, что хотите удалить этого инженера?')) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/sla/engineers/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        showNotification('Инженер удален', 'success');
+        loadEngineers();
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        showNotification('Ошибка удаления инженера: ' + error.message, 'danger');
     }
 }
 

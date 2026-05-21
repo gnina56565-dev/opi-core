@@ -52,19 +52,43 @@ public class PlanningService {
             if (!candidates.isEmpty()) {
                 Engineer bestEngineer = candidates.get(0);
 
-                SlaRecord sla = new SlaRecord();
-                sla.setRequest(request);
-                sla.setEngineer(bestEngineer);
-                sla.setPlannedStart(LocalDateTime.now());
-                sla.setPlannedEnd(LocalDateTime.now().plusHours(4));
-                sla.setSlaForecast(true);
+                // Проверяем, есть ли уже SLA запись для этой заявки (инженер выполняет заявку)
+                List<SlaRecord> existingSlaRecords = slaRecordRepository.findByRequestIdAndActualEndIsNull(request.getId());
 
-                slaRecordRepository.save(sla);
+                if (!existingSlaRecords.isEmpty()) {
+                    // Инженер уже выполняет заявку - смещаем на свободное время
+                    SlaRecord existingSla = existingSlaRecords.get(0);
+                    LocalDateTime freeTime = existingSla.getPlannedEnd();
 
-                request.setStatus(Status.В_РАБОТЕ);
-                requestRepository.save(request);
+                    SlaRecord sla = new SlaRecord();
+                    sla.setRequest(request);
+                    sla.setEngineer(bestEngineer);
+                    sla.setPlannedStart(freeTime);
+                    sla.setPlannedEnd(freeTime.plusHours(4));
+                    sla.setSlaForecast(true);
 
-                assignedCount++;
+                    slaRecordRepository.save(sla);
+
+                    request.setStatus(Status.В_РАБОТЕ);
+                    requestRepository.save(request);
+
+                    assignedCount++;
+                } else {
+                    // Заявка новая, назначаем обычным способом
+                    SlaRecord sla = new SlaRecord();
+                    sla.setRequest(request);
+                    sla.setEngineer(bestEngineer);
+                    sla.setPlannedStart(LocalDateTime.now());
+                    sla.setPlannedEnd(LocalDateTime.now().plusHours(4));
+                    sla.setSlaForecast(true);
+
+                    slaRecordRepository.save(sla);
+
+                    request.setStatus(Status.В_РАБОТЕ);
+                    requestRepository.save(request);
+
+                    assignedCount++;
+                }
             }
         }
         return assignedCount;
