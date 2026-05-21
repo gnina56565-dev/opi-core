@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SlaRecordRepository extends JpaRepository<SlaRecord, Integer> {
+    int countByEngineerIdAndRequestStatus(Integer engineerId, ru.opi.model.Status status);
 }

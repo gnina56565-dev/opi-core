@@ -1,6 +1,5 @@
 package ru.opi.model;
 
-import ru.opi.model.LineLevel;
 import jakarta.persistence.*;
 import lombok.*;
 
