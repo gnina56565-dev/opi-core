@@ -1,213 +1,155 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система управления заявками</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        h1, h2 { color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #218838; }
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; }
+
+        /* Статусы инженеров */
+        .status-free { color: green; font-weight: bold; }
+        .status-busy { color: red; font-weight: bold; }
+        .progress-bar { background-color: #e9ecef; border-radius: 4px; height: 10px; width: 100%; margin-top: 5px; }
+        .progress-fill { background-color: #007bff; height: 100%; border-radius: 4px; }
+
+        /* Приоритеты */
+        .prio-CRITICAL { color: #dc3545; font-weight: bold; }
+        .prio-HIGH { color: #fd7e14; font-weight: bold; }
+        .prio-MEDIUM { color: #ffc107; }
+        .prio-LOW { color: #28a745; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand" href="/">Система заявок</a>
-    </div>
-</nav>
+<div class="container">
+    <h1>🛠 Управление заявками и инженерами</h1>
 
-<div class="container mt-4">
-    <!-- Уведомления -->
-    <div id="notification" class="alert d-none" role="alert"></div>
-
-    <!-- Вкладки навигации -->
-    <ul class="nav nav-tabs mb-4" id="mainTabs">
-        <li class="nav-item">
-            <a class="nav-link active" data-tab="requests" href="#">Заявки</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-tab="create" href="#">Создать заявку</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-tab="engineers" href="#">Инженеры</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-tab="planning" href="#">Планирование</a>
-        </li>
-    </ul>
-
-    <!-- Экран списка заявок -->
-    <div id="requests-view" class="tab-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Список заявок</h2>
-            <button class="btn btn-primary" onclick="loadRequests()">Обновить</button>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Тема</th>
-                    <th>Приоритет</th>
-                    <th>Статус</th>
-                    <th>Создана</th>
-                    <th>Действия</th>
-                </tr>
-                </thead>
-                <tbody id="requests-table-body">
-                <tr><td colspan="6" class="text-center">Загрузка...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Экран создания заявки -->
-    <div id="create-view" class="tab-content d-none">
-        <h2>Создание новой заявки</h2>
-        <form id="create-request-form" class="mt-4">
-            <div class="mb-3">
-                <label for="subject" class="form-label">Тема *</label>
-                <input type="text" class="form-control" id="subject" required>
+    <!-- Форма создания инженера -->
+    <div class="card">
+        <h2>👨‍🔧 Создать инженера</h2>
+        <form action="/engineers/create" method="post">
+            <div class="form-group">
+                <label>Имя:</label>
+                <input type="text" name="name" required placeholder="Иван Иванов">
             </div>
-            <div class="mb-3">
-                <label for="specification" class="form-label">Описание *</label>
-                <textarea class="form-control" id="specification" rows="4" required></textarea>
+            <div class="form-group">
+                <label>Специализация:</label>
+                <input type="text" name="specialization" required placeholder="Например: Сетевой администратор">
             </div>
-            <div class="mb-3">
-                <label for="contactInfo" class="form-label">Контактная информация *</label>
-                <input type="text" class="form-control" id="contactInfo" required>
-            </div>
-            <div class="mb-3">
-                <label for="priority" class="form-label">Приоритет *</label>
-                <select class="form-select" id="priority" required>
-                    <option value="НИЗКИЙ">Низкий</option>
-                    <option value="СРЕДНИЙ">Средний</option>
-                    <option value="ВЫСОКИЙ">Высокий</option>
-                    <option value="КРИТИЧЕСКИЙ">Критический</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="competence" class="form-label">Компетенция *</label>
-                <select class="form-select" id="competence" required>
-                    <option value="">Выберите компетенцию</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success">Создать заявку</button>
+            <button type="submit">Добавить инженера</button>
         </form>
     </div>
 
-    <!-- Экран управления инженерами -->
-    <div id="engineers-view" class="tab-content d-none">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Управление инженерами</h2>
-            <button class="btn btn-primary" onclick="loadEngineers()">Обновить</button>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>Добавить инженера</h5>
+    <!-- Форма создания заявки -->
+    <div class="card">
+        <h2>📝 Создать заявку</h2>
+        <form action="/requests/create" method="post">
+            <div class="form-group">
+                <label>Заголовок:</label>
+                <input type="text" name="title" required placeholder="Краткое описание проблемы">
             </div>
-            <div class="card-body">
-                <form id="create-engineer-form" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="engineerFio" class="form-label">ФИО *</label>
-                        <input type="text" class="form-control" id="engineerFio" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="engineerLevel" class="form-label">Уровень *</label>
-                        <select class="form-select" id="engineerLevel" required>
-                            <option value="ONE">1 линия</option>
-                            <option value="TWO">2 линия</option>
-                            <option value="THREE">3 линия</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="engineerActive" class="form-label">Активен</label>
-                        <select class="form-select" id="engineerActive">
-                            <option value="true">Да</option>
-                            <option value="false">Нет</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100">Добавить</button>
-                    </div>
+            <div class="form-group">
+                <label>Описание:</label>
+                <textarea name="description" rows="3" placeholder="Подробности..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Приоритет:</label>
+                <select name="priority">
+                    <option value="CRITICAL">Критический (SLA: 4ч)</option>
+                    <option value="HIGH">Высокий (SLA: 8ч)</option>
+                    <option value="MEDIUM">Средний (SLA: 24ч)</option>
+                    <option value="LOW">Низкий (SLA: 72ч)</option>
+                </select>
+            </div>
+            <button type="submit">Создать заявку</button>
+        </form>
+    </div>
+
+    <!-- Список инженеров с загрузкой -->
+    <h2>👥 Инженеры и загрузка</h2>
+    <div class="grid">
+        <div th:each="eng : ${engineers}" class="card">
+            <h3 th:text="${eng.name}">Имя</h3>
+            <p><small th:text="${eng.specialization}">Спец.</small></p>
+
+            <div th:if="${eng.active}">
+                <p>Статус:
+                    <span th:if="${eng.currentTaskCount == 0}" class="status-free">🟢 Свободен</span>
+                    <span th:unless="${eng.currentTaskCount == 0}" class="status-busy">
+                        🔴 Занят до <span th:text="${#temporals.format(eng.currentTaskEndTime, 'HH:mm dd.MM')}">времени</span>
+                    </span>
+                </p>
+                <p>Активных задач: <strong th:text="${eng.currentTaskCount}">0</strong></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" th:style="'width: ' + (${eng.currentTaskCount} * 10 > 100 ? 100 : ${eng.currentTaskCount} * 10) + '%'" ></div>
+                </div>
+                <br>
+                <form action="/engineers/${eng.id}/deactivate" method="post" style="display:inline;">
+                    <button type="submit" class="danger" onclick="return confirm('Деактивировать?')">Деактивировать</button>
                 </form>
             </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>ФИО</th>
-                    <th>Уровень</th>
-                    <th>Активен</th>
-                    <th>Действия</th>
-                </tr>
-                </thead>
-                <tbody id="engineers-table-body">
-                <tr><td colspan="5" class="text-center">Загрузка...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Экран планирования -->
-    <div id="planning-view" class="tab-content d-none">
-        <h2>Алгоритм планирования</h2>
-        <p class="mt-3">Запустите алгоритм распределения заявок по инженерам.</p>
-        <button class="btn btn-primary btn-lg" onclick="runPlanning()">Запустить планирование</button>
-        <div id="planning-result" class="mt-4"></div>
-    </div>
-
-    <!-- Модальное окно просмотра заявки -->
-    <div class="modal fade" id="requestModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Заявка #<span id="modal-id"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <dl class="row">
-                        <dt class="col-sm-3">Тема:</dt>
-                        <dd class="col-sm-9" id="modal-subject"></dd>
-
-                        <dt class="col-sm-3">Описание:</dt>
-                        <dd class="col-sm-9" id="modal-specification"></dd>
-
-                        <dt class="col-sm-3">Контакты:</dt>
-                        <dd class="col-sm-9" id="modal-contact"></dd>
-
-                        <dt class="col-sm-3">Приоритет:</dt>
-                        <dd class="col-sm-9"><span id="modal-priority" class="badge"></span></dd>
-
-                        <dt class="col-sm-3">Статус:</dt>
-                        <dd class="col-sm-9"><span id="modal-status" class="badge"></span></dd>
-
-                        <dt class="col-sm-3">Создана:</dt>
-                        <dd class="col-sm-9" id="modal-created"></dd>
-
-                        <dt class="col-sm-3">SLA дедлайн:</dt>
-                        <dd class="col-sm-9" id="modal-sla"></dd>
-
-                        <dt class="col-sm-3">Время окончания:</dt>
-                        <dd class="col-sm-9" id="modal-actual-end"></dd>
-
-                        <dt class="col-sm-3">Эскалация:</dt>
-                        <dd class="col-sm-9" id="modal-escalation"></dd>
-                    </dl>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                    <button type="button" class="btn btn-warning" id="btn-escalate">Эскалировать</button>
-                    <button type="button" class="btn btn-danger" id="btn-delete">Удалить</button>
-                </div>
+            <div th:unless="${eng.active}">
+                <p style="color: gray;">❌ Не активен</p>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/app.js"></script>
+    <!-- Список заявок -->
+    <h2>📋 Реестр заявок</h2>
+    <div class="card">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Заголовок</th>
+                <th>Приоритет</th>
+                <th>Статус</th>
+                <th>Инженер</th>
+                <th>Время ожидания</th>
+                <th>План. начало</th>
+                <th>План. конец (SLA)</th>
+                <th>Действие</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="req : ${requests}">
+                <td th:text="${req.id}">1</td>
+                <td th:text="${req.title}">Заголовок</td>
+                <td>
+                    <span th:class="'prio-' + ${req.priority}" th:text="${req.priority}">PRI</span>
+                    <br><small style="color:gray" th:text="'SLA: ' + ${req.slaHours} + 'ч'"></small>
+                </td>
+                <td th:text="${req.status}">NEW</td>
+                <td th:text="${req.engineer != null ? req.engineer.name : 'Не назначен'}">-</td>
+                <td th:text="${req.waitTimeHours} + ' ч'">0 ч</td>
+                <td th:text="${req.startedAt != null ? #temporals.format(req.startedAt, 'HH:mm dd.MM') : '-'}">-</td>
+                <td th:text="${req.estimatedEndTime != null ? #temporals.format(req.estimatedEndTime, 'HH:mm dd.MM') : '-'}">-</td>
+                <td>
+                    <form th:if="${req.status.name() == 'IN_PROGRESS'}" action="/requests/${req.id}/complete" method="post">
+                        <button type="submit">✅ Завершить</button>
+                    </form>
+                    <span th:if="${req.status.name() == 'COMPLETED'}" style="color:green">Готово</span>
+                    <span th:if="${req.status.name() == 'NEW'}" style="color:orange">Ожидает</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 </body>
 </html>

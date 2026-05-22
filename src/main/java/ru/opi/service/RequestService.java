@@ -2,13 +2,14 @@ package ru.opi.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.opi.model.Engineer;
 import ru.opi.model.Request;
 import ru.opi.model.Status;
 import ru.opi.model.Priority;
 import ru.opi.repository.RequestRepository;
-import ru.opi.repository.SlaRecordRepository;
+import ru.opi.repository.EngineerRepository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,78 +19,49 @@ public class RequestService {
     private RequestRepository requestRepository;
 
     @Autowired
-    private SlaRecordRepository slaRecordRepository;
+    private EngineerRepository engineerRepository;
 
-    public List<Request> findAll() {
+    @Autowired
+    private PlanningService planningService;
+
+    public List<Request> getAllRequests() {
         return requestRepository.findAll();
     }
 
-    public Request findById(Integer id) {
-        return requestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Заявка с ID " + id + " не найдена"));
+    public List<Request> getActiveRequestsByEngineer(Engineer engineer) {
+        return requestRepository.findByEngineerAndStatusIn(engineer, List.of(Status.НОВАЯ, Status.В_РАБОТЕ));
     }
 
-    public Request create(Request request) {
-        if (request.getSubject() == null || request.getSubject().isEmpty()) {
-            throw new IllegalArgumentException("Тема заявки обязательна");
-        }
-        if (request.getPriority() == null) {
-            throw new IllegalArgumentException("Приоритет обязателен");
-        }
+    @Transactional
+    public Request createRequest(String title, String description, String priorityStr) {
+        Priority priority = Priority.valueOf(priorityStr);
 
+        Request request = new Request();
+        request.setSubject(title); // Используем setSubject вместо setTitle, судя по вашему DTO
+        request.setSpecification(description);
+        request.setPriority(priority);
         request.setStatus(Status.НОВАЯ);
-        request.setCreatedAt(LocalDateTime.now());
 
-        int slaHours = getSlaHours(request.getPriority());
-        request.setSlaDeadline(LocalDateTime.now().plusHours(slaHours));
-
+        // Сохраняем, но не назначаем инженера сразу - это сделает планировщик
         return requestRepository.save(request);
     }
 
-    private int getSlaHours(Priority priority) {
-        switch (priority) {
-            case КРИТИЧЕСКИЙ: return 4;
-            case ВЫСОКИЙ: return 8;
-            case СРЕДНИЙ: return 24;
-            case НИЗКИЙ: return 72;
-            default: return 24;
-        }
+    @Transactional
+    public void completeRequest(Integer id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Заявка не найдена: " + id));
+
+        request.setStatus(Status.ЗАВЕРШЕНА);
+        request.setActualEnd(java.time.LocalDateTime.now());
+        requestRepository.save(request);
     }
 
-    public Request update(Integer id, Request updatedRequest) {
-        Request existing = findById(id);
-
-        if (updatedRequest.getSubject() != null) existing.setSubject(updatedRequest.getSubject());
-        if (updatedRequest.getSpecification() != null) existing.setSpecification(updatedRequest.getSpecification());
-        if (updatedRequest.getPriority() != null) existing.setPriority(updatedRequest.getPriority());
-
-        if (updatedRequest.getStatus() != null) {
-            existing.setStatus(updatedRequest.getStatus());
-        }
-
-        if (updatedRequest.getEscalationReason() != null) {
-            existing.setEscalationReason(updatedRequest.getEscalationReason());
-        }
-
-        return requestRepository.save(existing);
+    @Transactional
+    public void distributePending() {
+        planningService.runPlanning();
     }
 
-    public void delete(Integer id) {
-        if (!requestRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Заявка с ID " + id + " не найдена");
-        }
-
-        slaRecordRepository.deleteAll(slaRecordRepository.findByRequestIdAndActualEndIsNull(id));
-        requestRepository.deleteById(id);
-    }
-
-    public Request escalate(Integer id, String reason) {
-        Request request = findById(id);
-        request.setStatus(Status.ЭСКАЛИРОВАНА);
-        request.setEscalationReason(reason);
-        return requestRepository.save(request);
-    }
-
+    // Внутренний класс исключения
     public static class ResourceNotFoundException extends RuntimeException {
         public ResourceNotFoundException(String message) {
             super(message);
