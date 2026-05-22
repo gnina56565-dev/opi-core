@@ -2,7 +2,9 @@ package ru.opi.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,4 +42,18 @@ public class Engineer {
     @OneToMany(mappedBy = "engineer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<WorkSchedule> workSchedules = new ArrayList<>();
+
+    // Методы-помощники для совместимости с сервисом (если там используется setName)
+    public String getName() {
+        return this.fio;
+    }
+
+    public void setName(String name) {
+        this.fio = name;
+    }
+
+    // Геттер для ID, если он нужен как Long в некоторых местах (Lombok генерирует Integer)
+    public Long getLongId() {
+        return this.id != null ? this.id.longValue() : null;
+    }
 }

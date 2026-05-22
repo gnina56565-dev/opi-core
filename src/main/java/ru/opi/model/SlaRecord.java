@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(columnNames = {"id_request"})
 )
 @Data
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class SlaRecord {
@@ -45,4 +47,5 @@ public class SlaRecord {
 
     @Column(name = "sla_forecast", nullable = false)
     private Boolean slaForecast;
+
 }

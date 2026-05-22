@@ -8,7 +8,6 @@ import ru.opi.model.Request;
 import ru.opi.model.SlaRecord;
 import ru.opi.model.Status;
 import ru.opi.model.Priority;
-import ru.opi.model.LineLevel;
 import ru.opi.repository.EngineerRepository;
 import ru.opi.repository.RequestRepository;
 import ru.opi.repository.SlaRecordRepository;
@@ -31,7 +30,6 @@ public class PlanningService {
     private SlaRecordRepository slaRecordRepository;
 
     @Transactional
-    //возвращает количество успешно назначенных заявок
     public int runPlanning() {
         List<Request> pendingRequests = requestRepository.findByStatus(Status.НОВАЯ);
         List<Engineer> activeEngineers = engineerRepository.findByActiveTrue();
@@ -42,47 +40,47 @@ public class PlanningService {
 
         int assignedCount = 0;
 
+        // Сортировка: Критический (0) -> Низкий (3)
+        pendingRequests.sort(Comparator.comparingInt(r -> r.getPriority().ordinal()));
+
         for (Request request : pendingRequests) {
             int requiredLevel = getRequiredLevel(request.getPriority());
+
+            // ИСПРАВЛЕНО: getLevel() -> getLineLevel()
             List<Engineer> candidates = activeEngineers.stream()
-                    .filter(e -> e.getLineLevel().getValue() >= requiredLevel)
+                    .filter(e -> e.getLineLevel() != null && e.getLineLevel().getValue() >= requiredLevel)
                     .sorted(Comparator.comparingInt(this::getEngineerWorkload))
                     .collect(Collectors.toList());
 
             if (!candidates.isEmpty()) {
                 Engineer bestEngineer = candidates.get(0);
 
-                // Проверяем, есть ли уже SLA запись для этой заявки
-                List<SlaRecord> existingSlaForRequest = slaRecordRepository.findByRequestIdAndActualEndIsNull(request.getId());
-
-                if (!existingSlaForRequest.isEmpty()) {
-                    // Заявка уже назначена, пропускаем
+                // Проверка на дубли SLA (ИСПРАВЛЕНО: приведение типа ID)
+                List<SlaRecord> existingSla = slaRecordRepository.findByRequestIdAndActualEndIsNull(request.getId());
+                if (!existingSla.isEmpty()) {
                     continue;
                 }
 
-                // Находим последнюю активную заявку этого инженера, чтобы определить свободное время
-                List<SlaRecord> engineerActiveSla = slaRecordRepository.findByEngineerIdAndActualEndIsNullOrderByPlannedEndDesc(bestEngineer.getId());
+                // ЦЕПОЧКА: Время освобождения
+                LocalDateTime freeTime = getEngineerFreeTime(bestEngineer);
+                int waitHours = request.getPriority().getWaitTimeHours();
+                LocalDateTime startTime = freeTime.plusHours(waitHours);
+                int slaHours = request.getPriority().getSlaHours();
+                LocalDateTime endTime = startTime.plusHours(slaHours);
 
-                LocalDateTime startTime;
-                if (!engineerActiveSla.isEmpty()) {
-                    // Инженер уже выполняет заявки - смещаем на время окончания последней
-                    SlaRecord lastSla = engineerActiveSla.get(0);
-                    startTime = lastSla.getPlannedEnd();
-                } else {
-                    // Инженер свободен, начинаем сейчас
-                    startTime = LocalDateTime.now();
-                }
-
-                // Создаем новую SLA запись
+                // Сохраняем SLA запись
                 SlaRecord sla = new SlaRecord();
                 sla.setRequest(request);
                 sla.setEngineer(bestEngineer);
                 sla.setPlannedStart(startTime);
-                sla.setPlannedEnd(startTime.plusHours(4));
+                sla.setPlannedEnd(endTime);
                 sla.setSlaForecast(true);
-
                 slaRecordRepository.save(sla);
 
+                // Обновляем заявку
+                request.setEngineer(bestEngineer);
+                request.setPlannedStart(startTime);
+                request.setPlannedEnd(endTime);
                 request.setStatus(Status.В_РАБОТЕ);
                 requestRepository.save(request);
 
@@ -90,6 +88,15 @@ public class PlanningService {
             }
         }
         return assignedCount;
+    }
+
+    private LocalDateTime getEngineerFreeTime(Engineer engineer) {
+        // ИСПРАВЛЕНО: приведение типа ID
+        List<SlaRecord> activeSla = slaRecordRepository.findByEngineerIdAndActualEndIsNullOrderByPlannedEndDesc(engineer.getId());
+        if (activeSla.isEmpty()) {
+            return LocalDateTime.now();
+        }
+        return activeSla.get(0).getPlannedEnd();
     }
 
     private int getRequiredLevel(Priority priority) {

@@ -1,55 +1,58 @@
 package ru.opi.model;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import ru.opi.model.Competence;
-
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Data
 @Entity
 @Table(name = "requests")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Request {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_request")
-    private Integer id;
+    private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_competence", nullable = false)
-    private Competence competence;
-
-    @Column(name = "subject", nullable = false, length = 200)
     private String subject;
-
-    @Column(name = "specification", nullable = false)
     private String specification;
-
-    @Column(name = "contact_info", nullable = false, length = 255)
     private String contactInfo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "priority", nullable = false, length = 20)
     private Priority priority;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 30)
-    private Status status;
+    private Status status = Status.НОВАЯ;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "engineer_id")
+    private Engineer engineer;
 
-    @Column(name = "sla_deadline", nullable = false)
+    // Связь с компетенцией (если осталась в вашей схеме)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competence_id")
+    private Competence competence;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    // Поля для планирования
+    private LocalDateTime plannedStart;
+    private LocalDateTime plannedEnd;
     private LocalDateTime slaDeadline;
+    private LocalDateTime actualEnd;
 
-    @Column(name = "escalation_reason")
     private String escalationReason;
 
-    @Column(name = "actual_end")
-    private LocalDateTime actualEnd;
+    // Вспомогательные методы для UI (чтобы не ломать шаблон)
+    public int getSlaHours() {
+        return (priority != null) ? priority.getSlaHours() : 0;
+    }
+
+    public int getWaitTimeHours() {
+        return (priority != null) ? priority.getWaitTimeHours() : 0;
+    }
+
+    // Для совместимости с DTO, если используются старые названия
+    public String getTitle() { return this.subject; }
+    public void setTitle(String title) { this.subject = title; }
+    public String getDescription() { return this.specification; }
+    public void setDescription(String desc) { this.specification = desc; }
 }

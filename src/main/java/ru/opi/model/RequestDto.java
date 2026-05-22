@@ -17,10 +17,15 @@ public class RequestDto {
     private String escalationReason;
     private LocalDateTime actualEnd;
 
+    // Дополнительные поля для UI
+    private LocalDateTime plannedStart;
+    private LocalDateTime plannedEnd;
+    private String engineerName;
+
     public static RequestDto fromEntity(Request request) {
         if (request == null) return null;
         RequestDto dto = new RequestDto();
-        dto.setIdRequest(request.getId() != null ? request.getId().longValue() : null);
+        dto.setIdRequest(request.getId());
         dto.setSubject(request.getSubject());
         dto.setSpecification(request.getSpecification());
         dto.setContactInfo(request.getContactInfo());
@@ -30,42 +35,46 @@ public class RequestDto {
         dto.setSlaDeadline(request.getSlaDeadline());
         dto.setEscalationReason(request.getEscalationReason());
         dto.setActualEnd(request.getActualEnd());
+        dto.setPlannedStart(request.getPlannedStart());
+        dto.setPlannedEnd(request.getPlannedEnd());
+
+        if (request.getEngineer() != null) {
+            dto.setEngineerName(request.getEngineer().getName());
+        }
+
         if (request.getCompetence() != null) {
-            dto.setIdCompetence(request.getCompetence().getId() != null ? request.getCompetence().getId().longValue() : null);
+            dto.setIdCompetence(request.getCompetence().getId());
         }
         return dto;
     }
 
-    public Request toEntity(Competence competence) {
+    public Request toEntity() {
         Request request = new Request();
         if (this.idRequest != null) {
-            request.setId(this.idRequest.intValue());
+            request.setId(this.idRequest);
         }
-        request.setCompetence(competence);
+        // Компетенцию нужно устанавливать отдельно через сервис, здесь null
         request.setSubject(this.subject);
         request.setSpecification(this.specification);
         request.setContactInfo(this.contactInfo);
         if (this.priority != null) {
-            request.setPriority(Priority.valueOf(this.priority));
+            try {
+                request.setPriority(Priority.valueOf(this.priority));
+            } catch (IllegalArgumentException e) {
+                // Обработка неверного приоритета
+            }
         }
         if (this.status != null) {
-            request.setStatus(Status.valueOf(this.status));
+            try {
+                request.setStatus(Status.valueOf(this.status));
+            } catch (IllegalArgumentException e) {
+                // Обработка неверного статуса
+            }
         }
         request.setCreatedAt(this.createdAt);
         request.setSlaDeadline(this.slaDeadline);
         request.setEscalationReason(this.escalationReason);
         request.setActualEnd(this.actualEnd);
         return request;
-    }
-
-    public void updateEntity(Request request, Competence competence) {
-        if (this.subject != null) request.setSubject(this.subject);
-        if (this.specification != null) request.setSpecification(this.specification);
-        if (this.contactInfo != null) request.setContactInfo(this.contactInfo);
-        if (this.priority != null) request.setPriority(Priority.valueOf(this.priority));
-        if (this.status != null) request.setStatus(Status.valueOf(this.status));
-        if (this.escalationReason != null) request.setEscalationReason(this.escalationReason);
-        if (this.actualEnd != null) request.setActualEnd(this.actualEnd);
-        if (competence != null) request.setCompetence(competence);
     }
 }
